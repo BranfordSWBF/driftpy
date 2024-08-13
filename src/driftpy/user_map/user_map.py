@@ -157,7 +157,7 @@ class UserMap(UserMapInterface, DLOBSource):
                     headers={"content-encoding": "gzip"},
                 )
 
-                resp = await asyncio.wait_for(post, timeout=30)
+                resp = await asyncio.wait_for(post, timeout=120)
 
                 parsed_resp = jsonrpcclient.parse(resp.json())
 
@@ -241,7 +241,8 @@ class UserMap(UserMapInterface, DLOBSource):
         with open(filename, "rb") as f:
             users: list[PickledData] = pickle.load(f)
             for user in users:
-                data = decode_user(decompress(user.data))
+                decompressed_data = decompress(user.data)
+                data = decode_user(decompressed_data)
                 await self.add_pubkey(user.pubkey, DataAndSlot(slot, data))
 
     def dump(self, filename: Optional[str] = None):
@@ -249,6 +250,6 @@ class UserMap(UserMapInterface, DLOBSource):
         for pubkey, user in self.raw.items():
             users.append(PickledData(pubkey=pubkey, data=compress(user)))
         self.last_dumped_slot = self.get_slot()
-        filename = filename or f"usermap_{self.last_dumped_slot}.pkl"
-        with open(filename, "wb") as f:
+        path = filename or f"usermap_{self.last_dumped_slot}.pkl"
+        with open(path, "wb") as f:
             pickle.dump(users, f, pickle.HIGHEST_PROTOCOL)
